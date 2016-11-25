@@ -23,6 +23,30 @@ services:
     depends_on:
       - elasticsearch
 
+  influxdb:
+    image: tutum/influxdb:0.8.8
+    environment:
+      PRE_CREATE_DB: "riemann"
+    ports:
+      - "8083:8083"
+      - "8086:8086"
+    expose:
+      - "8090"
+      - "8099"
+
+  riemann:
+    build: riemann/
+    ports:
+    - "5555:5555"
+    - "5555:5555/udp"
+    - "5556:5556"
+    command: -a start
+    links:
+      - influxdb
+    depends_on:
+      - influxdb
+
+
 networks:
   default:
     driver: bridge
