@@ -44,3 +44,4 @@ on your host machine, and making the docker machine IP your endpoint. To find th
 I've taken inspiration from:
  - https://github.com/deviantony/docker-elk
  - https://github.com/simonjohansson/crig
+ - https://www.artofmonitoring.com/
