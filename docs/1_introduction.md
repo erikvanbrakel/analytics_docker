@@ -1,0 +1,6 @@
+# Introduction
+For a long time, system operations (the 'IT team') was seen as a cost center in many organisations. The (virtual) hardware that runs the applications is just overhead, and the main goal of the operations team is to keep the costs down. However, if you change the perspective a little bit, and look at how your platform can provide value to the organisation, you quickly realise that traditional approaches to the services you need to provide break down. One of these services is monitoring and logging. It'll quickly become evident that there's so much more than tracking system metrics such as CPU usage, disk space and memory pressure.
+
+This reference architecture tries to address the different information needs of the complete organisation. Ranging from the 24/7 on-call team who need deeper insight into what's happening to the product teams who need to see business metrics on how the applications are performing. The key concept used is to start with a high level view, and drill down from there. Everything that happens within the stack should serve the needs of the business in some way or another.
+
+In the next parts of this write-up we'll drill down into the different moving parts of the system, and the problems these components solve.
