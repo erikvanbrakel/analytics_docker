@@ -17,14 +17,18 @@ services:
       - elasticsearch
 
   grafana:
-    image: grafana/grafana
+    build:
+      context: grafana/
+      args:
+        GRAFANA_VERSION: 4.0.0-1480439068
     ports:
       - "3000:3000"
     depends_on:
       - elasticsearch
+      - riemann
 
   influxdb:
-    image: tutum/influxdb:0.8.8
+    image: tutum/influxdb
     environment:
       PRE_CREATE_DB: "riemann"
     ports:
