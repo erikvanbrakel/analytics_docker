@@ -26,7 +26,7 @@ output {
     stdout {}
 }
 ```
-(./logstash/logstash.conf)
+_(./logstash/logstash.conf)_
 
 The `input` block tells LogStash that it should accept metrics using the Beats protocol, on port 5044 (the default port for Beats). The `output`
 block tells it to print everything to the standard output stream.
@@ -43,7 +43,7 @@ COPY logstash.conf /etc/logstash/
 
 CMD ["-f", "/etc/logstash/logstash.conf"]
 ```
-(./logstash/Dockerfile)
+_(./logstash/Dockerfile)_
 
 This will build a container based on logstash version 2.x, copy the configuration file to `/etc/logstash` and run LogStash pointing to that directory.
 
@@ -61,7 +61,7 @@ services:
     ports:
       - "5044:5044"
 ```
-(./docker-compose.yml)
+_(./docker-compose.yml)_
 
 To run this setup, simply run `docker-compose up` in the root of the project. This will build the LogStash image and run a container based on that
 image.
