@@ -23,13 +23,13 @@ input {
 }
 
 output {
-    stdout {}
+    stdout { codec => 'rubydebug' }
 }
 ```
 _(./logstash/logstash.conf)_
 
 The `input` block tells LogStash that it should accept metrics using the Beats protocol, on port 5044 (the default port for Beats). The `output`
-block tells it to print everything to the standard output stream.
+block tells it to print everything to the standard output stream. The codec makes sure that it's (sort of) human readable, for debugging purposes.
 
 Later on, this configuration will get a little bit more elaborate, but for now this is good enough to verify that we can enter data into the system.
 
@@ -67,5 +67,36 @@ To run this setup, simply run `docker-compose up` in the root of the project. Th
 image.
 
 # Verifying that it works
+As said before, we'll use (MetricBeat)[https://www.elastic.co/downloads/beats/metricbeat] initially to easily ship system metrics into the monitoring system. After installing it, we need to configure it slightly to enable shipping to LogStash. The default configuration ships a couple of metrics to ElasticSearch, but we don't want that.
 
-|| TODO ||
+```YAML
+metricbeat.modules:
+- module: system
+  metricsets:
+    - cpu
+  enabled: true
+  period: 1s
+
+output.logstash:
+  hosts: ["your_docker_machine_ip_here:5044"]
+```
+_(./metricbeat.yml)_
+
+This will push cpu metrics to LogStash at a 1 second interval. You will have to point metricbeat to the IP address of your docker machine, which you can find by using the `docker-machine` command line and some PowerShell:
+
+```powershell
+$machine_info = docker-machine inspect | ConvertFrom-Json
+$machine_info.Driver.IPAddress
+```
+
+When you start the stack using `docker-compose up` you should see the following output:
+```
+logstash_1  | log4j:WARN No appenders could be found for logger (io.netty.util.internal.logging.InternalLoggerFactory).
+logstash_1  | log4j:WARN Please initialize the log4j system properly.
+logstash_1  | log4j:WARN See http://logging.apache.org/log4j/1.2/faq.html#noconfig for more info.
+```
+
+You can safely ignore this warning for now, as we're just testing. When you start Metricbeat you will see the metric sets coming through.
+
+# Next steps
+With LogStash up and running, data collection is sorted. The next step is storing these metrics somewhere so we can work with them.
