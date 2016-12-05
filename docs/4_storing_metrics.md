@@ -26,7 +26,75 @@ services:
     ...
 ```
 
-The image takes the __PRE_CREATE_DB__ environment variable and creates a database with that name, provided one doesn't exist already. InfluxDB runs an administrative web UI on port 8083, and uses port 8086 for the API to send metrics to. We need to expose the API to the other containers, and the UI to the host system so we can take a look at it for inspection purposes.
+The image takes the __PRE_CREATE_DB__ environment variable and creates a database with that name, provided one doesn't exist already. InfluxDB runs an administrative web UI on port 8083, and uses port 8086 for the API to send metrics to. We only need to expose the API, as we can use that endpoint for both sending the data to, as well as for verifying the setup works.
 
 # Configuring LogStash
-|| TODO ||
+Previously, we had LogStash pipe the output to the standard output. This is sufficient for debugging purposes, but now we're going to do some actual work. For this we'll need to install an output plugin and configure it so it will send the metrics through in a structured way. To do this, we add a few lines to the Dockerfile to install the plugin, and add the output configuration to the configuration file.
+
+https://www.elastic.co/guide/en/beats/metricbeat/current/metricbeat-event-structure.html
+
+```Dockerfile
+FROM logstash:2
+
+RUN logstash-plugin install logstash-output-influxdb
+
+COPY logstash.conf /etc/logstash/
+
+CMD ["-f", "/etc/logstash/logstash.conf"]
+
+```
+The `RUN` line installs the InfluxDB output into our image. The rest is all in the logstash.conf file:
+
+```ruby
+input {
+    beats {
+        port => 5044
+    }
+}
+
+output {
+    influxdb {
+        data_points => {
+            "cpu.user.pct" => "%{[system][cpu][user][pct]}"
+        }
+        db => "metrics"
+        host => "influxdb"
+        retention_policy => ""
+    }
+}
+```
+
+The output block configures the newly installed InfluxDB output plugin to send metrics to our pre-created database. It can discover the InfluxDB endpoint based on the DNS resolution built into Docker. For the purpose of verifying that everything works, we'll ship only one data point into the data store.
+
+# Verifying that it works
+
+Everything should now be set up, so (cpu) metrics should be piped through LogStash into InfluxDB. To verify this, we can use some simple PowerShell to query the API for our new metrics:
+
+```powershell
+$query = [System.Web.HttpUtility]::UrlEncode("SELECT * FROM logstash")
+$db = "metrics"
+$data = Invoke-RestMethod "http://192.168.99.100:8086/query?db=$db&q=$query"
+$data.results.series.values
+```
+
+This should show the recorded metrics. Something like this:
+
+```
+2016-12-05T13:12:37.556Z
+0.0308
+2016-12-05T13:12:38.553Z
+0.0279
+2016-12-05T13:12:39.554Z
+0.0115
+2016-12-05T13:12:40.554Z
+0.0351
+```
+
+# Data retention policies
+The metrics we store in InfluxDB have different use cases. The most recent measurements can be used to get a real-time overview of the services we monitor. For this purpose, it's important that the resolution of the measurements is high enough to get an accurate view of the current state. After some time however, these very granular measurements start to lose their value bit by bit. Over longer periods of time it's more interesting to look at the trends and patterns in the data.
+
+One of the advantages of using a data store which is specifically designed for dealing with metrics ('time series') is that most of them come with built-in support to deal with this exact issue. 
+
+__|| Add more stuff here ||__
+
+
