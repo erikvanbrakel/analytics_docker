@@ -93,8 +93,39 @@ This should show the recorded metrics. Something like this:
 # Data retention policies
 The metrics we store in InfluxDB have different use cases. The most recent measurements can be used to get a real-time overview of the services we monitor. For this purpose, it's important that the resolution of the measurements is high enough to get an accurate view of the current state. After some time however, these very granular measurements start to lose their value bit by bit. Over longer periods of time it's more interesting to look at the trends and patterns in the data.
 
-One of the advantages of using a data store which is specifically designed for dealing with metrics ('time series') is that most of them come with built-in support to deal with this exact issue. 
+One of the advantages of using a data store which is specifically designed for dealing with metrics ('time series') is that most of them come with [built-in support to deal with this exact issue](https://docs.influxdata.com/influxdb/v1.1/guides/downsampling_and_retention/). So let's configure a data retention policy for our metrics DB, and configure LogStash to use this policy for the metrics.
 
-__|| Add more stuff here ||__
+First, we'll need to create a new data retention policy. InfluxDB uses an SQL-like DSL over HTTP for interacting with the service. This DSL can be used to query the data store as well as modify the schemas and in this case, retention policies in particular.
+Each InfluxDB database has one default and an arbitrary number of named retention policies. The syntax for this in InfluxDB-SQL is:
+```SQL
+CREATE RETENTION POLICY <retention_policy_name> ON <database_name> DURATION <duration> REPLICATION <n> [SHARD DURATION <duration>] [DEFAULT]
+```
 
+We'll create one on the _metrics_ database, with a duration of 1 hour (which is the minimum). We won't mess with defaults or sharding. The _REPLICATION_ clause determines how many independent copies of each point are stored in a cluster, which is irrelevant at the moment as we only have one node.
 
+So putting this all together, we get this:
+```SQL
+CREATE RETENTION POLICY an_hour ON metrics DURATION 1h REPLICATION 1
+```
+
+In the logstash.conf file, we have to refer to this retention policy in the output section:
+
+```ruby
+...
+output {
+    influxdb {
+        data_points => {
+            "cpu.user.pct" => "%{[system][cpu][user][pct]}"
+        }
+        db => "metrics"
+        host => "influxdb"
+        retention_policy => "an_hour"
+    }
+}
+...
+```
+
+That's all! Metrics will now be kept for no longer than one hour. 
+
+# Next steps
+Now that collecting and storing data is covered, it's time to do something with this data.
